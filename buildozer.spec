@@ -31,7 +31,8 @@ p4a.branch = develop
 android.entrypoint = org.kivy.android.PythonActivity
 
 # Requirements (use pillow instead of pil)
-requirements = python3,kivy,numpy,pillow,pyjnius,android
+# Use older numpy version for better Android NDK compatibility
+requirements = python3,kivy,numpy==1.26.4,pillow,pyjnius,android
 # Cython version fix for pyjnius compatibility
 cython_version = 3.0.11
 
