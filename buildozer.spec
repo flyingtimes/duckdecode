@@ -28,8 +28,8 @@ python.version = 3.9
 p4a.branch = master
 android.entrypoint = org.kivy.android.PythonActivity
 
-# Requirements
-requirements = python3,kivy,numpy,pil,pillow,pyjnius,android
+# Requirements (use pillow instead of pil)
+requirements = python3,kivy,numpy,pillow,pyjnius,android
 
 # Logging
 log_level = 2
