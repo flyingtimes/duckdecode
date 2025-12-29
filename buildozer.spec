@@ -27,7 +27,7 @@ android.accept_sdk_license = True
 
 # Python
 python.version = 3.11
-p4a.branch = stable
+p4a.branch = master
 android.entrypoint = org.kivy.android.PythonActivity
 
 # Requirements (use pillow instead of pil)
