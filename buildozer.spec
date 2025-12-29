@@ -27,11 +27,13 @@ android.accept_sdk_license = True
 
 # Python
 python.version = 3.9
-p4a.branch = master
+p4a.branch = develop
 android.entrypoint = org.kivy.android.PythonActivity
 
 # Requirements (use pillow instead of pil)
 requirements = python3,kivy,numpy,pillow,pyjnius,android
+# Cython version fix for pyjnius compatibility
+cython_version = 3.0.11
 
 # Logging
 log_level = 2
