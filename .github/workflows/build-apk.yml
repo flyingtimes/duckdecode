@@ -57,7 +57,7 @@ jobs:
 
     - name: Accept Android SDK licenses
       run: |
-        mkdir -p ~/.android
+        mkdir -p ~/.android/licenses
         echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > ~/.android/android-licenses.md5
         echo -e "\n8933bad161af4178b1185d1a37fbf41ea5269c95" >> ~/.android/android-licenses.md5
         echo -e "\n8933bad161af4178b1185d1a37fbf41ea5269c95\n5d7b69fd5533eac8f92c22bc17db505f" > ~/.android/licenses/android-sdk-license
