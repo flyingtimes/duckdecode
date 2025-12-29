@@ -1,0 +1,13 @@
+FROM kivy/buildozer
+
+# Patch buildozer to allow running as root
+USER root
+
+RUN sed -i '/def check_root(self):/a\        return True  # Skip root check in Docker' /home/user/.venv/lib/python*/site-packages/buildozer/__init__.py
+
+# Set workdir
+WORKDIR /home/user/apphost
+
+# Override entrypoint to allow running bash commands
+ENTRYPOINT ["/bin/bash", "-c"]
+CMD ["bash"]

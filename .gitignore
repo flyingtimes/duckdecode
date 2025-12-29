@@ -1,0 +1,49 @@
+# Build outputs
+bin/
+build/
+.dist/
+*.apk
+*.aab
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+downloads/
+.eggs/
+.venv/
+venv/
+ENV/
+
+# Buildozer
+.buildozer/
+.global-buildozer/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+build.log
+
+# Temporary files
+*.tmp
+*.bak
+.cache/
+
+# Test images
+test*.png
+*.png
+!icon.png

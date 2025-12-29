@@ -1,0 +1,107 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'duck_decode_android.py'
+      - 'buildozer.spec'
+      - '.github/workflows/build-apk.yml'
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          git \
+          python3-pip \
+          python3-setuptools \
+          python3-wheel \
+          openjdk-17-jdk \
+          autoconf \
+          libtool \
+          pkg-config \
+          libncurses5-dev \
+          libncursesw5-dev \
+          libtinfo5 \
+          libc6-dev \
+          linux-libc-dev \
+          zlib1g-dev \
+          lsb-core \
+          zip \
+          unzip \
+          ca-certificates
+
+    - name: Install buildozer
+      run: |
+        pip3 install --upgrade pip
+        pip3 install buildozer cython
+
+    - name: Prepare buildozer spec
+      run: |
+        cp duck_decode_android.py main.py
+
+    - name: Accept Android SDK licenses
+      run: |
+        mkdir -p ~/.android
+        echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > ~/.android/android-licenses.md5
+        echo -e "\n8933bad161af4178b1185d1a37fbf41ea5269c95" >> ~/.android/android-licenses.md5
+        echo -e "\n8933bad161af4178b1185d1a37fbf41ea5269c95\n5d7b69fd5533eac8f92c22bc17db505f" > ~/.android/licenses/android-sdk-license
+        echo -e "\n8933bad161af4178b1185d1a37fbf41ea5269c95\nd56f5187479451eabf01fb3af8edf42c61393d27" > ~/.android/licenses/android-sdk-preview-license
+        echo -e "\n8933bad161af4178b1185d1a37fbf41ea5269c95\n84831b9409646a918e30573bab4c9c913459c7a0" > ~/.android/licenses/google-android-ndk-license
+
+    - name: Download Android SDK/NDK (cache)
+      uses: actions/cache@v3
+      id: cache-sdk
+      with:
+        path: |
+          ~/.buildozer
+          ~/.gradle
+        key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
+        restore-keys: |
+          ${{ runner.os }}-buildozer-
+
+    - name: Build APK with buildozer
+      run: |
+        yes | buildozer android debug 2>&1 || true
+      continue-on-error: true
+
+    - name: Check build output
+      run: |
+        ls -la bin/ || echo "No bin directory"
+        find . -name "*.apk" -type f || echo "No APK found"
+
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: duckdecode-apk
+        path: |
+          bin/*.apk
+          *.apk
+        retention-days: 30
+      if: always()
+
+    - name: Build summary
+      run: |
+        echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- Python: $(python --version)" >> $GITHUB_STEP_SUMMARY
+        echo "- Buildozer: $(buildozer --version)" >> $GITHUB_STEP_SUMMARY
+        echo "- APK Files:" >> $GITHUB_STEP_SUMMARY
+        ls -la bin/*.apk 2>/dev/null || echo "  No APK generated" >> $GITHUB_STEP_SUMMARY

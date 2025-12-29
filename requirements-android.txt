@@ -1,0 +1,19 @@
+# Duck Decode Android - 移动端依赖
+# APK编译需要这些包
+
+# 核心框架
+kivy>=2.3.0
+
+# 数值计算
+numpy>=1.24.0
+
+# 图像处理
+Pillow>=10.0.0
+
+# Android支持
+pyjnius>=1.6.0
+android>=0.1.0
+
+# 打包工具（仅编译时需要）
+buildozer>=1.5.0
+cython>=3.0.0

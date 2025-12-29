@@ -1,0 +1,14 @@
+# Duck Decode GUI - 隐写解码工具依赖
+# 安装: pip install -r requirements.txt
+
+# 图像处理
+Pillow>=10.0.0
+
+# 数值计算
+numpy>=1.24.0
+
+# GUI框架
+PyQt5>=5.15.0
+
+# 打包工具
+pyinstaller>=5.0.0
