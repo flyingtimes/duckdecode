@@ -26,15 +26,12 @@ android.skip_update = False
 android.accept_sdk_license = True
 
 # Python
-python.version = 3.9
-p4a.branch = develop
+python.version = 3.11
+p4a.branch = stable
 android.entrypoint = org.kivy.android.PythonActivity
 
 # Requirements (use pillow instead of pil)
-# Use older numpy that's known to compile with Android NDK
-requirements = python3,kivy,numpy==1.24.4,pillow,pyjnius,android
-# Cython version fix for pyjnius compatibility
-cython_version = 3.0.11
+requirements = python3,kivy,numpy,pillow,pyjnius,android
 
 # Logging
 log_level = 2
