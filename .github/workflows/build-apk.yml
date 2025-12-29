@@ -40,14 +40,12 @@ jobs:
           pkg-config \
           libncurses5-dev \
           libncursesw5-dev \
-          libtinfo5 \
+          libtinfo-dev \
           libc6-dev \
-          linux-libc-dev \
           zlib1g-dev \
-          lsb-core \
           zip \
           unzip \
-          ca-certificates
+          ca-certificates || true
 
     - name: Install buildozer
       run: |
