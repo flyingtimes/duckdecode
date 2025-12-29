@@ -6,8 +6,8 @@ source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,json
 version = 1.0.0
 
-# Android settings - use API 28 (Android 9) which is widely available
-android.api = 28
+# Android settings - use API 30 (Android 11) which is widely available
+android.api = 30
 android.minapi = 24
 android.ndk = 25b
 android.archs = arm64-v8a
