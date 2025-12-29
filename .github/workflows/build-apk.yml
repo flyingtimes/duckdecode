@@ -36,6 +36,7 @@ jobs:
           python3-wheel \
           openjdk-17-jdk \
           autoconf \
+          automake \
           libtool \
           pkg-config \
           libncurses5-dev \
@@ -43,6 +44,8 @@ jobs:
           libtinfo-dev \
           libc6-dev \
           zlib1g-dev \
+          libffi-dev \
+          libltdl-dev \
           zip \
           unzip \
           ca-certificates || true
@@ -77,6 +80,10 @@ jobs:
 
     - name: Build APK with buildozer
       run: |
+        # Set environment to help with libffi compilation
+        export AUTOMAKE=automake
+        export ACLOCAL=aclocal
+        export AUTOCONF=autoconf
         # Use printf to auto-accept licenses
         printf 'y\ny\ny\ny\n' | buildozer android debug
         # Check if build succeeded

@@ -10,7 +10,7 @@ version = 1.0.0
 android.api = 28
 android.minapi = 24
 android.ndk = 25b
-android.archs = arm64-v8a,armeabi-v7a
+android.archs = arm64-v8a
 
 # Permissions
 android.permissions = READ_EXTERNAL_STORAGE,WRITE_EXTERNAL_STORAGE,READ_MEDIA_IMAGES
@@ -22,6 +22,8 @@ fullscreen = 0
 # Build settings
 android.gradle_build = True
 android.enable_androidx = True
+android.skip_update = False
+android.accept_sdk_license = True
 
 # Python
 python.version = 3.9
