@@ -50,6 +50,20 @@ class ChineseLabel(Label):
         super().__init__(**kwargs)
 
 
+class ChineseButton(Button):
+    """支持中文的Button"""
+    def __init__(self, **kwargs):
+        kwargs['font_name'] = CHINESE_FONT
+        super().__init__(**kwargs)
+
+
+class ChineseTextInput(TextInput):
+    """支持中文的TextInput"""
+    def __init__(self, **kwargs):
+        kwargs['font_name'] = CHINESE_FONT
+        super().__init__(**kwargs)
+
+
 class MaterialLabel(Label):
     """Material风格标签 - 支持中文"""
     def __init__(self, **kwargs):
@@ -80,11 +94,12 @@ WATERMARK_SKIP_W_RATIO = 0.40
 WATERMARK_SKIP_H_RATIO = 0.08
 
 
-class RoundedButton(Button):
-    """圆角按钮 - 老人友好的大按钮"""
+class RoundedButton(ChineseButton):
+    """圆角按钮 - 老人友好的大按钮 - 支持中文"""
     radius = NumericProperty(25)
 
     def __init__(self, **kwargs):
+        kwargs['font_name'] = CHINESE_FONT
         super().__init__(**kwargs)
         self.background_color = (0, 0, 0, 0)
         self.background_normal = ''
@@ -364,7 +379,7 @@ class DuckDecodeApp(App):
             size_hint_y=None,
             height=35
         )
-        self.file_btn = Button(
+        self.file_btn = ChineseButton(
             text="📱\n点击这里选择图片\n\n请在相册中选择含有隐藏信息的图片",
             font_size='18sp',
             size_hint_y=None,
@@ -392,7 +407,7 @@ class DuckDecodeApp(App):
             size_hint_y=None,
             height=25
         )
-        self.password_input = TextInput(
+        self.password_input = ChineseTextInput(
             hint_text="请输入密码（如果不需要密码请留空）",
             password=True,
             password_mask="●",
@@ -431,7 +446,7 @@ class DuckDecodeApp(App):
             size_hint_y=None,
             height=30
         )
-        self.log_text = TextInput(
+        self.log_text = ChineseTextInput(
             readonly=True,
             font_size='16sp',
             size_hint_y=None,
