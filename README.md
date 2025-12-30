@@ -1,5 +1,7 @@
 # Duck Decode - Android APK
 
+[![Build Android APK](https://github.com/flyingtimes/duckdecode/actions/workflows/build-apk.yml/badge.svg?branch=main)](https://github.com/flyingtimes/duckdecode/actions/workflows/build-apk.yml)
+
 隐写解码工具 - 从图片中提取隐藏的文件
 
 ## 功能
