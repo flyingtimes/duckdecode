@@ -112,16 +112,23 @@ jobs:
           body: |
             ## Duck Decode v${{ steps.version.outputs.version }}
 
-            Windows 可执行文件下载。
+            ### 下载链接
+            - **Windows**: `DuckDecode-${{ steps.version.outputs.version }}-win64.zip`
+            - **Android**: APK 将在构建完成后自动添加到此 Release
 
-            ### 使用说明
+            ### Windows 使用说明
             1. 下载 `DuckDecode-${{ steps.version.outputs.version }}-win64.zip`
             2. 解压缩
             3. 运行 `DuckDecode-${{ steps.version.outputs.version }}.exe`
 
+            ### Android 使用说明
+            1. 下载 `DuckDecode-${{ steps.version.outputs.version }}-android.zip`
+            2. 解压缩得到 APK 文件
+            3. 在 Android 设备上安装
+
             ### 系统要求
-            - Windows 10 或更高版本
-            - 无需安装 Python 或其他依赖
+            - **Windows**: Windows 10 或更高版本，无需安装 Python
+            - **Android**: Android 5.0 (API 21) 或更高版本
 
             完整源代码和使用说明请查看项目主页。
         env:
