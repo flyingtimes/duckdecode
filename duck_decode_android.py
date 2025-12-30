@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-Duck Decode Android - 隐写解码移动端工具
-从图片中解码隐藏的文件内容
+Duck Decode Android - Steganography Decoder Tool
 Modern Material Design Style - Elderly Friendly
 """
 import os
@@ -24,6 +24,41 @@ from kivy.utils import platform
 from kivy.core.window import Window
 from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.properties import NumericProperty
+
+# Android Chinese font path
+ANDROID_CHINESE_FONT = '/system/fonts/NotoSansCJK-Regular.ttc'
+ANDROID_FALLBACK_FONT = '/system/fonts/DroidSansFallback.ttf'
+
+
+def get_chinese_font():
+    """获取支持中文的字体"""
+    if platform == 'android':
+        if os.path.exists(ANDROID_CHINESE_FONT):
+            return ANDROID_CHINESE_FONT
+        elif os.path.exists(ANDROID_FALLBACK_FONT):
+            return ANDROID_FALLBACK_FONT
+    return 'Roboto'  # 默认字体
+
+
+CHINESE_FONT = get_chinese_font()
+
+
+class ChineseLabel(Label):
+    """支持中文的Label"""
+    def __init__(self, **kwargs):
+        kwargs['font_name'] = CHINESE_FONT
+        super().__init__(**kwargs)
+
+
+class MaterialLabel(Label):
+    """Material风格标签 - 支持中文"""
+    def __init__(self, **kwargs):
+        kwargs['font_name'] = CHINESE_FONT
+        super().__init__(**kwargs)
+        self.color = (0.15, 0.15, 0.15, 1)
+        self.markup = True
+        self.halign = 'left'
+        self.valign = 'middle'
 
 # 全局错误捕获
 def global_exception_handler(exc_type, exc_value, exc_traceback):
@@ -86,16 +121,6 @@ class CardLayout(BoxLayout):
         self.bg_rect.size = self.size
         self.border_rect.pos = self.pos
         self.border_rect.size = self.size
-
-
-class MaterialLabel(Label):
-    """Material风格标签"""
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.color = (0.15, 0.15, 0.15, 1)
-        self.markup = True
-        self.halign = 'left'
-        self.valign = 'middle'
 
 
 class SafeDecodeLogic:
@@ -295,7 +320,7 @@ class DuckDecodeApp(App):
         header.bind(pos=self.update_header_rect, size=self.update_header_rect)
 
         title_layout = BoxLayout(orientation='vertical', size_hint_x=1)
-        app_title = Label(
+        app_title = ChineseLabel(
             text="🦆 鸭鸭解码器",
             font_size='36sp',
             color=(1, 1, 1, 1),
@@ -303,7 +328,7 @@ class DuckDecodeApp(App):
             size_hint_y=None,
             height=55
         )
-        app_subtitle = Label(
+        app_subtitle = ChineseLabel(
             text="图片隐写解码工具 · 简单易用",
             font_size='14sp',
             color=(0.95, 0.95, 1, 1),
@@ -450,7 +475,7 @@ class DuckDecodeApp(App):
         content_layout.add_widget(help_card)
 
         # 版本信息
-        version_label = Label(
+        version_label = ChineseLabel(
             text="🦆 鸭鸭解码器 v1.0.0 | 简单易用的隐写解码工具",
             font_size='13sp',
             color=(0.5, 0.5, 0.5, 1),
@@ -675,7 +700,7 @@ class DuckDecodeApp(App):
             popup_layout = BoxLayout(orientation='vertical', padding=30, spacing=20)
 
             # 错误图标
-            icon_label = Label(
+            icon_label = ChineseLabel(
                 text="❌",
                 font_size='60sp',
                 size_hint_y=None,
@@ -683,7 +708,7 @@ class DuckDecodeApp(App):
             )
 
             # 错误消息
-            msg_label = Label(
+            msg_label = ChineseLabel(
                 text=message,
                 font_size='18sp',
                 text_size=(320, None),
@@ -734,7 +759,7 @@ class DuckDecodeApp(App):
             popup_layout = BoxLayout(orientation='vertical', padding=30, spacing=20)
 
             # 成功图标
-            icon_label = Label(
+            icon_label = ChineseLabel(
                 text="✅",
                 font_size='60sp',
                 size_hint_y=None,
@@ -742,7 +767,7 @@ class DuckDecodeApp(App):
             )
 
             # 成功消息
-            msg_label = Label(
+            msg_label = ChineseLabel(
                 text=message,
                 font_size='18sp',
                 text_size=(320, None),
