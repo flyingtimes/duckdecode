@@ -20,41 +20,41 @@ from kivy.uix.button import Button
 from kivy.uix.textinput import TextInput
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.popup import Popup
-from kivy.uix.modalview import ModalView
-from kivy.uix.progressbar import ProgressBar
 from kivy.clock import Clock
 from kivy.utils import platform
 from kivy.core.window import Window
 from kivy.graphics import Color, Rectangle, RoundedRectangle, Line
-from kivy.properties import NumericProperty, StringProperty
+from kivy.properties import NumericProperty
 from kivy.metrics import dp, sp
-from kivy.animation import Animation
 
 # Android Chinese font path
 ANDROID_CHINESE_FONT = '/system/fonts/NotoSansCJK-Regular.ttc'
 ANDROID_FALLBACK_FONT = '/system/fonts/DroidSansFallback.ttf'
 
 # Material Design Colors
-MD_PRIMARY = (0.26, 0.35, 0.76, 1)      # Deep Blue
-MD_PRIMARY_DARK = (0.13, 0.22, 0.63, 1)  # Darker Blue
-MD_ACCENT = (0.26, 0.61, 0.76, 1)        # Cyan
-MD_SUCCESS = (0.20, 0.73, 0.33, 1)       # Green
-MD_WARNING = (0.98, 0.58, 0.00, 1)       # Orange
-MD_ERROR = (0.94, 0.33, 0.33, 1)         # Red
-MD_BACKGROUND = (0.97, 0.97, 1.0, 1)     # Light Gray
-MD_SURFACE = (1.0, 1.0, 1.0, 1)          # White
-MD_TEXT_PRIMARY = (0.13, 0.13, 0.13, 1)  # Dark Gray
-MD_TEXT_SECONDARY = (0.60, 0.60, 0.60, 1) # Medium Gray
-MD_DIVIDER = (0.91, 0.91, 0.91, 1)       # Light Divider
+MD_PRIMARY = (0.26, 0.35, 0.76, 1)
+MD_PRIMARY_DARK = (0.13, 0.22, 0.63, 1)
+MD_ACCENT = (0.26, 0.61, 0.76, 1)
+MD_SUCCESS = (0.20, 0.73, 0.33, 1)
+MD_WARNING = (0.98, 0.58, 0.00, 1)
+MD_ERROR = (0.94, 0.33, 0.33, 1)
+MD_BACKGROUND = (0.97, 0.97, 1.0, 1)
+MD_SURFACE = (1.0, 1.0, 1.0, 1)
+MD_TEXT_PRIMARY = (0.13, 0.13, 0.13, 1)
+MD_TEXT_SECONDARY = (0.60, 0.60, 0.60, 1)
+MD_DIVIDER = (0.91, 0.91, 0.91, 1)
 
 
 def get_chinese_font():
     """获取支持中文的字体"""
-    if platform == 'android':
-        if os.path.exists(ANDROID_CHINESE_FONT):
-            return ANDROID_CHINESE_FONT
-        elif os.path.exists(ANDROID_FALLBACK_FONT):
-            return ANDROID_FALLBACK_FONT
+    try:
+        if platform == 'android':
+            if os.path.exists(ANDROID_CHINESE_FONT):
+                return ANDROID_CHINESE_FONT
+            elif os.path.exists(ANDROID_FALLBACK_FONT):
+                return ANDROID_FALLBACK_FONT
+    except:
+        pass
     return 'Roboto'
 
 
@@ -67,9 +67,11 @@ def global_exception_handler(exc_type, exc_value, exc_traceback):
     error_msg = ''.join(traceback.format_exception(exc_type, exc_value, exc_traceback))
     print("CRITICAL ERROR:", error_msg, file=sys.stderr)
     try:
-        log_path = os.path.join(App.get_running_app().user_data_dir, "error_log.txt")
-        with open(log_path, "w", encoding="utf-8") as f:
-            f.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n{error_msg}")
+        app = App.get_running_app()
+        if app:
+            log_path = os.path.join(app.user_data_dir, "error_log.txt")
+            with open(log_path, "w", encoding="utf-8") as f:
+                f.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n{error_msg}")
     except:
         pass
 
@@ -106,25 +108,26 @@ class ChineseTextInput(TextInput):
 
 class MDCard(BoxLayout):
     """Material Design 卡片组件"""
-    elevation = NumericProperty(2)
-    radius = NumericProperty([12])
-
     def __init__(self, **kwargs):
+        self.elevation = 2
+        self.radius = [12]
         super().__init__(**kwargs)
         self.padding = dp(16)
         self.spacing = dp(12)
         self.orientation = 'vertical'
         self.size_hint_y = None
-        self.canvas.before.clear()
-        self.bind(pos=self.update_canvas, size=self.update_canvas)
 
-    def update_canvas(self, *args):
+    def on_parent(self, widget, parent):
+        if parent:
+            self.draw_card()
+
+    def draw_card(self):
         self.canvas.before.clear()
         with self.canvas.before:
             # 阴影效果
             Color(0.85, 0.85, 0.9, 0.3)
             self.shadow_rect = RoundedRectangle(
-                pos=(self.pos[0] + dp(2), self.pos[1] - dp(2)),
+                pos=(self.x + dp(2), self.y - dp(2)),
                 size=self.size,
                 radius=self.radius
             )
@@ -138,18 +141,23 @@ class MDCard(BoxLayout):
             # 边框
             Color(*MD_DIVIDER)
             self.border_rect = Line(
-                rectangle=[self.pos[0], self.pos[1], self.size[0], self.size[1]],
-                width=dp(0.5),
-                rounded_rectangle=[self.pos[0], self.pos[1], self.size[0], self.size[1], *self.radius]
+                rectangle=[self.x, self.y, self.width, self.height],
+                width=dp(0.5)
             )
 
+    def on_pos(self, *args):
+        if self.parent:
+            self.draw_card()
 
-class MDButton(Button):
+    def on_size(self, *args):
+        if self.parent:
+            self.draw_card()
+
+
+class StyledButton(ChineseButton):
     """Material Design 按钮"""
-    style = StringProperty('primary')  # primary, secondary, success, error, text
-
     def __init__(self, **kwargs):
-        kwargs['font_name'] = CHINESE_FONT
+        self.button_style = kwargs.pop('style', 'primary')
         super().__init__(**kwargs)
         self.background_color = (0, 0, 0, 0)
         self.background_normal = ''
@@ -158,68 +166,58 @@ class MDButton(Button):
         self.bold = True
         self.size_hint_y = None
         self.height = dp(48)
-        self.canvas.before.clear()
-        self.bind(pos=self.update_canvas, size=self.update_canvas, on_press=self.on_press_down, on_release=self.on_press_up)
 
-    def update_canvas(self, *args):
+    def draw_button(self):
         self.canvas.before.clear()
         with self.canvas.before:
-            if self.style == 'primary':
+            if self.button_style == 'primary':
                 Color(*MD_PRIMARY)
-            elif self.style == 'secondary':
+            elif self.button_style == 'secondary':
                 Color(*MD_ACCENT)
-            elif self.style == 'success':
+            elif self.button_style == 'success':
                 Color(*MD_SUCCESS)
-            elif self.style == 'error':
+            elif self.button_style == 'error':
                 Color(*MD_ERROR)
             else:
-                Color(0, 0, 0, 0)
                 Color(*MD_DIVIDER)
 
-            bg_color = MD_PRIMARY if self.style == 'primary' else (
-                MD_ACCENT if self.style == 'secondary' else (
-                    MD_SUCCESS if self.style == 'success' else (
-                        MD_ERROR if self.style == 'error' else MD_DIVIDER
-                    )
-                )
-            )
-
-            if self.style == 'text':
-                Color(0, 0, 0, 0)
-            else:
-                Color(*bg_color)
-
-            self.bg_rect = RoundedRectangle(
+            RoundedRectangle(
                 pos=self.pos,
                 size=self.size,
                 radius=[dp(8)]
             )
 
-            # 涟漪效果
+            # 按下效果
             if self.state == 'down':
                 Color(1, 1, 1, 0.2)
-                self.ripple = RoundedRectangle(
+                RoundedRectangle(
                     pos=self.pos,
                     size=self.size,
                     radius=[dp(8)]
                 )
 
-    def on_press_down(self, instance):
-        anim = Animation(opacity=0.8, duration=0.1)
-        anim.start(self)
+    def on_parent(self, widget, parent):
+        if parent:
+            self.draw_button()
 
-    def on_press_up(self, instance):
-        anim = Animation(opacity=1.0, duration=0.2)
-        anim.start(self)
+    def on_pos(self, *args):
+        if self.parent:
+            self.draw_button()
+
+    def on_size(self, *args):
+        if self.parent:
+            self.draw_button()
+
+    def on_state(self, *args):
+        if self.parent:
+            self.draw_button()
 
 
-class MDTextField(BoxLayout):
+class StyledTextField(BoxLayout):
     """Material Design 文本输入框"""
-    hint_text = StringProperty('')
-    text_value = StringProperty('')
-    is_password = False
-
     def __init__(self, **kwargs):
+        self.hint_text_value = kwargs.get('hint_text', '')
+        self.is_password = kwargs.get('password', False)
         super().__init__(**kwargs)
         self.orientation = 'vertical'
         self.size_hint_y = None
@@ -229,7 +227,7 @@ class MDTextField(BoxLayout):
 
         # 标签/提示
         self.label = ChineseLabel(
-            text=kwargs.get('hint_text', ''),
+            text=self.hint_text_value,
             font_size=sp(12),
             color=MD_TEXT_SECONDARY,
             size_hint_y=None,
@@ -238,14 +236,13 @@ class MDTextField(BoxLayout):
         self.add_widget(self.label)
 
         # 输入框容器
-        input_container = BoxLayout(size_hint_y=None, height=dp(48))
-        input_container.canvas.before.clear()
-        input_container.bind(pos=self.update_input_canvas, size=self.update_input_canvas)
+        self.input_container = BoxLayout(size_hint_y=None, height=dp(48))
+        self.add_widget(self.input_container)
 
         # 实际输入框
         self.text_input = ChineseTextInput(
-            hint_text=kwargs.get('hint_text', ''),
-            password=kwargs.get('password', False),
+            hint_text=self.hint_text_value,
+            password=self.is_password,
             password_mask='●',
             multiline=False,
             size_hint=(1, 1),
@@ -255,17 +252,17 @@ class MDTextField(BoxLayout):
             padding_x=dp(12),
             padding_y=dp(12)
         )
-        input_container.add_widget(self.text_input)
-        self.add_widget(input_container)
+        self.input_container.add_widget(self.text_input)
 
-        # 存储容器引用
-        self.input_container = input_container
+        # 绘制下划线
+        self.input_container.bind(pos=self.draw_input_line, size=self.draw_input_line)
+        self.draw_input_line()
 
-    def update_input_canvas(self, *args):
+    def draw_input_line(self, *args):
         self.input_container.canvas.before.clear()
         with self.input_container.canvas.before:
             Color(*MD_DIVIDER)
-            self.line = Line(
+            Line(
                 points=[
                     self.input_container.x, self.input_container.y,
                     self.input_container.right, self.input_container.y
@@ -273,7 +270,7 @@ class MDTextField(BoxLayout):
                 width=dp(1)
             )
             Color(*MD_PRIMARY)
-            self.active_line = Line(
+            Line(
                 points=[
                     self.input_container.x, self.input_container.y,
                     self.input_container.center_x, self.input_container.y
@@ -290,53 +287,21 @@ class MDTextField(BoxLayout):
         self.text_input.text = value
 
 
-class MDProgressBar(ProgressBar):
-    """Material Design 进度条"""
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.size_hint_y = None
-        self.height = dp(4)
-        self.max = 100
-        self.value = 0
-        self.canvas.before.clear()
-        self.bind(pos=self.update_canvas, size=self.update_canvas, value=self.update_canvas)
-
-    def update_canvas(self, *args):
-        self.canvas.before.clear()
-        with self.canvas.before:
-            # 背景轨道
-            Color(0.88, 0.88, 0.9, 1)
-            RoundedRectangle(
-                pos=self.pos,
-                size=self.size,
-                radius=[dp(2)]
-            )
-            # 进度条
-            if self.value > 0:
-                Color(*MD_PRIMARY)
-                progress_width = self.width * (self.value / self.max)
-                RoundedRectangle(
-                    pos=self.pos,
-                    size=(progress_width, self.height),
-                    radius=[dp(2)]
-                )
-
-
-class MDIconLabel(BoxLayout):
+class IconLabel(BoxLayout):
     """带图标的标签"""
     def __init__(self, icon='', text='', **kwargs):
         super().__init__(**kwargs)
         self.orientation = 'horizontal'
         self.spacing = dp(8)
         self.size_hint_y = None
-        self.height = dp(24)
+        self.height = dp(28)
 
         self.icon_label = ChineseLabel(
             text=icon,
             font_size=sp(20),
             color=MD_PRIMARY,
             size_hint_x=None,
-            width=dp(24)
+            width=dp(28)
         )
         self.text_label = ChineseLabel(
             text=text,
@@ -346,43 +311,6 @@ class MDIconLabel(BoxLayout):
         )
         self.add_widget(self.icon_label)
         self.add_widget(self.text_label)
-
-
-class MDSnackbar(BoxLayout):
-    """Material Design Snackbar 提示"""
-    def __init__(self, message='', duration=3, **kwargs):
-        super().__init__(**kwargs)
-        self.orientation = 'horizontal'
-        self.size_hint_x = 0.9
-        self.size_hint_y = None
-        self.height = dp(48)
-        self.pos_hint = {'center_x': 0.5, 'y': dp(16)}
-        self.padding = dp(16)
-        self.canvas.before.clear()
-        self.bind(pos=self.update_canvas, size=self.update_canvas)
-
-        self.message_label = ChineseLabel(
-            text=message,
-            font_size=sp(14),
-            color=(1, 1, 1, 1),
-            size_hint_x=1
-        )
-        self.add_widget(self.message_label)
-
-    def update_canvas(self, *args):
-        self.canvas.before.clear()
-        with self.canvas.before:
-            Color(0.2, 0.2, 0.2, 0.9)
-            RoundedRectangle(pos=self.pos, size=self.size, radius=[dp(4)])
-
-    def show(self, parent_widget):
-        parent_widget.add_widget(self)
-        Clock.schedule_once(lambda dt: self.dismiss(), 3)
-
-    def dismiss(self):
-        parent = self.parent
-        if parent:
-            parent.remove_widget(self)
 
 
 # ==================== 解码逻辑 ====================
@@ -568,224 +496,224 @@ class DuckDecodeApp(App):
     """主应用类 - 现代设计版"""
 
     def build(self):
-        self.title = "Duck Decode"
-        Window.softinput_mode = "below_target"
-        Window.clearcolor = MD_BACKGROUND
+        try:
+            print("DuckDecode: Starting build...", file=sys.stderr)
+            self.title = "Duck Decode"
+            Window.softinput_mode = "below_target"
+            Window.clearcolor = MD_BACKGROUND
 
-        # 主布局
-        root = BoxLayout(orientation='vertical')
+            # 主布局
+            root = BoxLayout(orientation='vertical')
 
-        # AppBar
-        appbar = BoxLayout(size_hint_y=None, height=dp(56), padding=[dp(16), 0])
-        appbar.canvas.before.clear()
-        with appbar.canvas.before:
-            Color(*MD_PRIMARY)
-            appbar.bg = Rectangle(pos=appbar.pos, size=appbar.size)
-        appbar.bind(pos=self.update_appbar, size=self.update_appbar)
+            # AppBar
+            appbar = BoxLayout(size_hint_y=None, height=dp(56), padding=[dp(16), 0])
+            appbar.canvas.before.clear()
+            with appbar.canvas.before:
+                Color(*MD_PRIMARY)
+                appbar.bg = Rectangle(pos=appbar.pos, size=appbar.size)
 
-        title_layout = BoxLayout(orientation='vertical', spacing=dp(2))
-        app_title = ChineseLabel(
-            text="🦆 鸭鸭解码器",
-            font_size=sp(20),
-            color=(1, 1, 1, 1),
-            bold=True,
-            size_hint_y=None,
-            height=dp(28)
-        )
-        app_subtitle = ChineseLabel(
-            text="图片隐写解码工具",
-            font_size=sp(12),
-            color=(0.9, 0.9, 1, 1),
-            size_hint_y=None,
-            height=dp(18)
-        )
-        title_layout.add_widget(app_title)
-        title_layout.add_widget(app_subtitle)
-        appbar.add_widget(title_layout)
-        root.add_widget(appbar)
+            def update_appbar(instance, value):
+                instance.bg.pos = instance.pos
+                instance.bg.size = instance.size
 
-        # 内容区域
-        content_scroll = ScrollView(do_scroll_x=False)
-        content_layout = BoxLayout(orientation='vertical', spacing=dp(16), padding=dp(16), size_hint_y=None)
-        content_layout.bind(minimum_height=content_layout.setter('height'))
+            appbar.bind(pos=update_appbar, size=update_appbar)
 
-        # 欢迎卡片
-        welcome_card = MDCard(size_hint_y=None, height=dp(80))
-        welcome_label = ChineseLabel(
-            text="[color=%s]欢迎使用！[/color]\n请按照下方步骤操作" % self._rgb_to_hex(MD_TEXT_PRIMARY),
-            font_size=sp(14),
-            markup=True,
-            size_hint_y=None,
-            height=dp(48)
-        )
-        welcome_card.add_widget(welcome_label)
-        content_layout.add_widget(welcome_card)
+            title_layout = BoxLayout(orientation='vertical', spacing=dp(2))
+            app_title = ChineseLabel(
+                text="🦆 鸭鸭解码器",
+                font_size=sp(20),
+                color=(1, 1, 1, 1),
+                bold=True,
+                size_hint_y=None,
+                height=dp(28)
+            )
+            app_subtitle = ChineseLabel(
+                text="图片隐写解码工具",
+                font_size=sp(12),
+                color=(0.9, 0.9, 1, 1),
+                size_hint_y=None,
+                height=dp(18)
+            )
+            title_layout.add_widget(app_title)
+            title_layout.add_widget(app_subtitle)
+            appbar.add_widget(title_layout)
+            root.add_widget(appbar)
 
-        # 步骤1：选择图片
-        step1_card = MDCard(size_hint_y=None, height=dp(110))
-        step1_header = MDIconLabel(
-            icon='📱',
-            text="[b]步骤1：选择图片[/b]",
-            size_hint_y=None,
-            height=dp(28)
-        )
-        self.file_btn = MDButton(
-            text="点击选择图片",
-            style='primary',
-            size_hint_y=None,
-            height=dp(48)
-        )
-        self.file_btn.bind(on_press=self.safe_select_file)
-        self.file_status = ChineseLabel(
-            text="未选择图片",
-            font_size=sp(12),
-            color=MD_TEXT_SECONDARY,
-            size_hint_y=None,
-            height=dp(20)
-        )
-        step1_card.add_widget(step1_header)
-        step1_card.add_widget(self.file_btn)
-        step1_card.add_widget(self.file_status)
-        content_layout.add_widget(step1_card)
+            # 内容区域
+            content_scroll = ScrollView(do_scroll_x=False)
+            content_layout = BoxLayout(orientation='vertical', spacing=dp(16), padding=dp(16), size_hint_y=None)
+            content_layout.bind(minimum_height=content_layout.setter('height'))
 
-        # 步骤2：输入密码
-        step2_card = MDCard(size_hint_y=None, height=dp(100))
-        step2_header = MDIconLabel(
-            icon='🔐',
-            text="[b]步骤2：输入密码（可选）[/b]",
-            size_hint_y=None,
-            height=dp(28)
-        )
-        self.password_field = MDTextField(
-            hint_text='如果图片没有密码可以留空',
-            password=False
-        )
-        # 添加密码可见性切换
-        self.password_field.text_input.password = True
-        step2_card.add_widget(step2_header)
-        step2_card.add_widget(self.password_field)
-        content_layout.add_widget(step2_card)
+            # 欢迎卡片
+            welcome_card = MDCard(size_hint_y=None, height=dp(80))
+            welcome_label = ChineseLabel(
+                text="欢迎使用！\n请按照下方步骤操作",
+                font_size=sp(14),
+                size_hint_y=None,
+                height=dp(48)
+            )
+            welcome_card.add_widget(welcome_label)
+            content_layout.add_widget(welcome_card)
 
-        # 步骤3：开始解码
-        step3_card = MDCard(size_hint_y=None, height=dp(100))
-        step3_header = MDIconLabel(
-            icon='🚀',
-            text="[b]步骤3：开始解码[/b]",
-            size_hint_y=None,
-            height=dp(28)
-        )
-        self.decode_btn = MDButton(
-            text='开始解码',
-            style='primary',
-            size_hint_y=None,
-            height=dp(56)
-        )
-        self.decode_btn.bind(on_press=self.safe_start_decode)
-        step3_card.add_widget(step3_header)
-        step3_card.add_widget(self.decode_btn)
-        content_layout.add_widget(step3_card)
+            # 步骤1：选择图片
+            step1_card = MDCard(size_hint_y=None, height=dp(110))
+            step1_header = IconLabel(
+                icon='📱',
+                text="[b]步骤1：选择图片[/b]",
+                size_hint_y=None,
+                height=dp(28)
+            )
+            self.file_btn = StyledButton(
+                text="点击选择图片",
+                style='primary',
+                size_hint_y=None,
+                height=dp(48)
+            )
+            self.file_btn.bind(on_press=self.safe_select_file)
+            self.file_status = ChineseLabel(
+                text="未选择图片",
+                font_size=sp(12),
+                color=MD_TEXT_SECONDARY,
+                size_hint_y=None,
+                height=dp(20)
+            )
+            step1_card.add_widget(step1_header)
+            step1_card.add_widget(self.file_btn)
+            step1_card.add_widget(self.file_status)
+            content_layout.add_widget(step1_card)
 
-        # 进度条
-        self.progress_card = MDCard(size_hint_y=None, height=dp(60))
-        self.progress_card.opacity = 0
-        progress_label = ChineseLabel(
-            text="解码进度",
-            font_size=sp(12),
-            color=MD_TEXT_SECONDARY,
-            size_hint_y=None,
-            height=dp(20)
-        )
-        self.progress_bar = MDProgressBar(size_hint_y=None, height=dp(8))
-        self.progress_label = ChineseLabel(
-            text="准备中...",
-            font_size=sp(12),
-            color=MD_TEXT_PRIMARY,
-            size_hint_y=None,
-            height=dp(20)
-        )
-        self.progress_card.add_widget(progress_label)
-        self.progress_card.add_widget(self.progress_bar)
-        self.progress_card.add_widget(self.progress_label)
-        content_layout.add_widget(self.progress_card)
+            # 步骤2：输入密码
+            step2_card = MDCard(size_hint_y=None, height=dp(100))
+            step2_header = IconLabel(
+                icon='🔐',
+                text="[b]步骤2：输入密码（可选）[/b]",
+                size_hint_y=None,
+                height=dp(28)
+            )
+            self.password_field = StyledTextField(
+                hint_text='如果图片没有密码可以留空',
+                password=True
+            )
+            step2_card.add_widget(step2_header)
+            step2_card.add_widget(self.password_field)
+            content_layout.add_widget(step2_card)
 
-        # 结果卡片
-        self.result_card = MDCard(size_hint_y=None, height=dp(0))
-        self.result_card.opacity = 0
-        result_header = MDIconLabel(
-            icon='📊',
-            text="[b]解码结果[/b]",
-            size_hint_y=None,
-            height=dp(28)
-        )
-        self.result_label = ChineseLabel(
-            text="",
-            font_size=sp(13),
-            color=MD_TEXT_PRIMARY,
-            markup=True,
-            size_hint_y=None,
-            height=dp(100)
-        )
-        self.open_btn = MDButton(
-            text='打开保存位置',
-            style='secondary',
-            size_hint_y=None,
-            height=dp(48)
-        )
-        self.open_btn.bind(on_press=self.safe_open_output_dir)
-        self.result_card.add_widget(result_header)
-        self.result_card.add_widget(self.result_label)
-        self.result_card.add_widget(self.open_btn)
-        content_layout.add_widget(self.result_card)
+            # 步骤3：开始解码
+            step3_card = MDCard(size_hint_y=None, height=dp(100))
+            step3_header = IconLabel(
+                icon='🚀',
+                text="[b]步骤3：开始解码[/b]",
+                size_hint_y=None,
+                height=dp(28)
+            )
+            self.decode_btn = StyledButton(
+                text='开始解码',
+                style='primary',
+                size_hint_y=None,
+                height=dp(56)
+            )
+            self.decode_btn.bind(on_press=self.safe_start_decode)
+            step3_card.add_widget(step3_header)
+            step3_card.add_widget(self.decode_btn)
+            content_layout.add_widget(step3_card)
 
-        # 帮助卡片
-        help_card = MDCard(size_hint_y=None, height=dp(90))
-        help_label = ChineseLabel(
-            text="[color=%s][b]💡 使用提示[/b][/color]\n"
-                  "• 确保选择的是正确的隐写图片\n"
-                  "• 如果有密码，请检查密码是否正确\n"
-                  "• 解码后的文件保存在「图库/Pictures/DuckDecode」" % self._rgb_to_hex(MD_PRIMARY),
-            font_size=sp(12),
-            markup=True,
-            size_hint_y=None,
-            height=dp(70)
-        )
-        help_card.add_widget(help_label)
-        content_layout.add_widget(help_card)
+            # 进度卡片
+            self.progress_card = MDCard(size_hint_y=None, height=dp(80))
+            self.progress_card.opacity = 0
+            progress_label = ChineseLabel(
+                text="解码进度",
+                font_size=sp(12),
+                color=MD_TEXT_SECONDARY,
+                size_hint_y=None,
+                height=dp(20)
+            )
+            self.progress_label = ChineseLabel(
+                text="准备中...",
+                font_size=sp(14),
+                color=MD_TEXT_PRIMARY,
+                size_hint_y=None,
+                height=dp(50)
+            )
+            self.progress_card.add_widget(progress_label)
+            self.progress_card.add_widget(self.progress_label)
+            content_layout.add_widget(self.progress_card)
 
-        # 版本信息
-        version_label = ChineseLabel(
-            text="🦆 鸭鸭解码器 v1.0.0",
-            font_size=sp(11),
-            color=MD_TEXT_SECONDARY,
-            size_hint_y=None,
-            height=dp(30),
-            halign='center'
-        )
-        content_layout.add_widget(version_label)
+            # 结果卡片
+            self.result_card = MDCard(size_hint_y=None, height=dp(0))
+            self.result_card.opacity = 0
+            result_header = IconLabel(
+                icon='📊',
+                text="[b]解码结果[/b]",
+                size_hint_y=None,
+                height=dp(28)
+            )
+            self.result_label = ChineseLabel(
+                text="",
+                font_size=sp(13),
+                color=MD_TEXT_PRIMARY,
+                markup=True,
+                size_hint_y=None,
+                height=dp(100)
+            )
+            self.open_btn = StyledButton(
+                text='打开保存位置',
+                style='secondary',
+                size_hint_y=None,
+                height=dp(48)
+            )
+            self.open_btn.bind(on_press=self.safe_open_output_dir)
+            self.result_card.add_widget(result_header)
+            self.result_card.add_widget(self.result_label)
+            self.result_card.add_widget(self.open_btn)
+            content_layout.add_widget(self.result_card)
 
-        content_scroll.add_widget(content_layout)
-        root.add_widget(content_scroll)
+            # 帮助卡片
+            help_card = MDCard(size_hint_y=None, height=dp(90))
+            help_label = ChineseLabel(
+                text="[b]💡 使用提示[/b]\n"
+                      "• 确保选择的是正确的隐写图片\n"
+                      "• 如果有密码，请检查密码是否正确\n"
+                      "• 解码后的文件保存在「图库/Pictures/DuckDecode」",
+                font_size=sp(12),
+                markup=True,
+                size_hint_y=None,
+                height=dp(70)
+            )
+            help_card.add_widget(help_label)
+            content_layout.add_widget(help_card)
 
-        self.selected_file = None
-        self.output_dir = self.get_default_output_dir()
-        self.snackbar_queue = []
+            # 版本信息
+            version_label = ChineseLabel(
+                text="🦆 鸭鸭解码器 v1.0.0",
+                font_size=sp(11),
+                color=MD_TEXT_SECONDARY,
+                size_hint_y=None,
+                height=dp(30),
+                halign='center'
+            )
+            content_layout.add_widget(version_label)
 
-        # 欢迎消息
-        Clock.schedule_once(self.show_welcome, 0.5)
+            content_scroll.add_widget(content_layout)
+            root.add_widget(content_scroll)
 
-        return root
+            self.selected_file = None
+            self.output_dir = self.get_default_output_dir()
 
-    def _rgb_to_hex(self, rgb):
-        """将RGB颜色转换为十六进制"""
-        return '#%02x%02x%02x' % (int(rgb[0]*255), int(rgb[1]*255), int(rgb[2]*255))
+            # 欢迎消息
+            Clock.schedule_once(self.show_welcome, 0.5)
 
-    def update_appbar(self, instance, value):
-        instance.bg.pos = instance.pos
-        instance.bg.size = instance.size
+            print("DuckDecode: Build complete!", file=sys.stderr)
+            return root
+
+        except Exception as e:
+            print(f"DuckDecode: Build error: {e}", file=sys.stderr)
+            traceback.print_exc()
+            # 返回简单界面以防崩溃
+            return BoxLayout()
 
     def show_welcome(self, dt):
         """显示欢迎消息"""
-        self.show_snackbar("欢迎使用鸭鸭解码器！")
+        print("DuckDecode: Welcome message", file=sys.stderr)
 
     def get_default_output_dir(self):
         """获取默认输出目录"""
@@ -803,12 +731,13 @@ class DuckDecodeApp(App):
     def safe_select_file(self, instance):
         """安全的选择文件"""
         try:
+            print("DuckDecode: Select file pressed", file=sys.stderr)
             if platform == 'android':
                 self.select_file_android()
             else:
                 self.select_file_desktop()
         except Exception as e:
-            self.show_snackbar(f"选择文件失败: {str(e)}")
+            print(f"DuckDecode: Select file error: {e}", file=sys.stderr)
             self.show_error_dialog("选择文件失败", str(e))
 
     def select_file_android(self):
@@ -842,13 +771,13 @@ class DuckDecodeApp(App):
                                 self.selected_file = f.name
 
                             self.file_btn.text = "✓ 已选择图片"
-                            self.file_btn.style = 'success'
+                            self.file_btn.button_style = 'success'
                             self.file_status.text = f"文件: {os.path.basename(self.selected_file)[:40]}"
                             self.file_status.color = MD_SUCCESS
-                            self.show_snackbar("图片选择成功！")
+                            print(f"DuckDecode: File selected: {self.selected_file}", file=sys.stderr)
 
                         except Exception as e:
-                            self.show_snackbar(f"读取图片失败: {str(e)}")
+                            print(f"DuckDecode: File read error: {e}", file=sys.stderr)
 
             activity.bind(on_activity_result=on_activity_result)
 
@@ -859,24 +788,26 @@ class DuckDecodeApp(App):
             current_activity.startActivityForResult(intent, 1001)
 
         except Exception as e:
-            self.show_snackbar(f"打开文件选择器失败: {str(e)}")
+            print(f"DuckDecode: File chooser error: {e}", file=sys.stderr)
 
     def select_file_desktop(self):
         """桌面端文件选择"""
         try:
-            self.log("请输入图片文件路径:")
+            print("Enter image path: ", file=sys.stderr)
             self.selected_file = input("Enter image path: ")
             if os.path.isfile(self.selected_file):
                 self.file_btn.text = "✓ 已选择图片"
                 self.file_status.text = f"文件: {os.path.basename(self.selected_file)}"
             else:
-                self.show_snackbar("文件不存在")
+                self.file_status.text = "文件不存在"
         except Exception as e:
-            self.show_snackbar(f"错误: {str(e)}")
+            print(f"Desktop select error: {e}", file=sys.stderr)
 
     def safe_start_decode(self, instance):
         """安全地开始解码"""
         try:
+            print("DuckDecode: Start decode pressed", file=sys.stderr)
+
             if not self.selected_file:
                 self.show_error_dialog("请先选择图片", "请点击上方按钮选择含有隐藏信息的图片")
                 return
@@ -889,8 +820,6 @@ class DuckDecodeApp(App):
 
             # 显示进度
             self.progress_card.opacity = 1
-            self.progress_card.height = dp(60)
-            self.progress_bar.value = 0
             self.progress_label.text = "正在解码..."
 
             # 禁用按钮
@@ -904,21 +833,17 @@ class DuckDecodeApp(App):
             Clock.schedule_once(lambda dt: self.safe_do_decode(password), 0.1)
 
         except Exception as e:
+            print(f"DuckDecode: Start decode error: {e}", file=sys.stderr)
             self.decode_btn.disabled = False
             self.decode_btn.text = "开始解码"
-            self.show_snackbar(f"启动解码失败: {str(e)}")
 
     def safe_do_decode(self, password):
         """安全地执行解码"""
         try:
+            print("DuckDecode: Decoding...", file=sys.stderr)
+
             def progress_callback(msg):
                 self.progress_label.text = msg
-                if "加载" in msg:
-                    self.progress_bar.value = 20
-                elif "提取" in msg:
-                    self.progress_bar.value = 50
-                elif "保存" in msg:
-                    self.progress_bar.value = 80
 
             result = SafeDecodeLogic.decode(
                 self.selected_file,
@@ -928,44 +853,40 @@ class DuckDecodeApp(App):
             )
 
             final_path, final_ext, size_str = result
-            self.progress_bar.value = 100
             self.progress_label.text = "解码完成！"
 
             # 显示结果
             self.result_label.text = (
-                f"[color=%s]🎉 解码成功！[/color]\n\n"
+                f"🎉 [color=#33BA54]解码成功！[/color]\n\n"
                 f"[b]文件名:[/b] {os.path.basename(final_path)}\n"
                 f"[b]文件类型:[/b] {final_ext.upper()}\n"
                 f"[b]文件大小:[/b] {size_str}\n"
-                f"[b]保存位置:[/b] 图库/Pictures/DuckDecode" % self._rgb_to_hex(MD_SUCCESS)
+                f"[b]保存位置:[/b] 图库/Pictures/DuckDecode"
             )
             self.result_card.height = dp(180)
             self.result_card.opacity = 1
 
             self.decode_btn.disabled = False
             self.decode_btn.text = "✓ 解码成功"
-            self.decode_btn.style = 'success'
+            self.decode_btn.button_style = 'success'
 
-            self.show_snackbar("解码成功！文件已保存")
             self.show_success_dialog("🎉 解码成功！", f"文件已保存到:\n图库/Pictures/DuckDecode\n\n文件名: {os.path.basename(final_path)}")
 
             # 3秒后重置按钮
             Clock.schedule_once(lambda dt: self.reset_decode_button(), 3)
 
         except Exception as e:
+            print(f"DuckDecode: Decode error: {e}", file=sys.stderr)
             self.progress_label.text = "解码失败"
             self.decode_btn.disabled = False
             self.decode_btn.text = "重新解码"
-            self.decode_btn.style = 'primary'
-
-            error_msg = str(e)
-            self.show_snackbar("解码失败")
-            self.show_error_dialog("解码失败", error_msg)
+            self.decode_btn.button_style = 'primary'
+            self.show_error_dialog("解码失败", str(e))
 
     def reset_decode_button(self):
         """重置解码按钮"""
         self.decode_btn.text = "开始解码"
-        self.decode_btn.style = 'primary'
+        self.decode_btn.button_style = 'primary'
 
     def safe_open_output_dir(self, instance):
         """安全地打开输出目录"""
@@ -981,23 +902,13 @@ class DuckDecodeApp(App):
             else:
                 import subprocess
                 subprocess.Popen(f'explorer "{self.output_dir}"')
-            self.show_snackbar("正在打开文件夹...")
         except Exception as e:
-            self.show_snackbar("打开文件夹失败")
+            print(f"DuckDecode: Open folder error: {e}", file=sys.stderr)
             self.show_error_dialog("打开文件夹失败", "请手动打开文件管理器查看:\n图库/Pictures/DuckDecode")
 
     def log(self, message):
         """添加日志"""
-        print(message)
-
-    def show_snackbar(self, message):
-        """显示Snackbar提示"""
-        try:
-            snackbar = MDSnackbar(message=message)
-            content = self.root.children[0].children[1]  # 获取ScrollView
-            snackbar.show(content)
-        except:
-            pass
+        print(message, file=sys.stderr)
 
     def show_error_dialog(self, title, message):
         """显示错误对话框"""
@@ -1022,7 +933,7 @@ class DuckDecodeApp(App):
                 height=dp(100)
             )
 
-            close_btn = MDButton(
+            close_btn = StyledButton(
                 text="我知道了",
                 style='primary',
                 size_hint_y=None,
@@ -1053,7 +964,7 @@ class DuckDecodeApp(App):
             close_btn.bind(on_press=dismiss_popup)
             popup.open()
         except Exception as e:
-            print(f"Error showing dialog: {e}")
+            print(f"DuckDecode: Dialog error: {e}", file=sys.stderr)
 
     def show_success_dialog(self, title, message):
         """显示成功对话框"""
@@ -1078,7 +989,7 @@ class DuckDecodeApp(App):
                 height=dp(100)
             )
 
-            close_btn = MDButton(
+            close_btn = StyledButton(
                 text="太好了！",
                 style='success',
                 size_hint_y=None,
@@ -1109,13 +1020,13 @@ class DuckDecodeApp(App):
             close_btn.bind(on_press=dismiss_popup)
             popup.open()
         except Exception as e:
-            print(f"Error showing dialog: {e}")
+            print(f"DuckDecode: Dialog error: {e}", file=sys.stderr)
 
 
 if __name__ == "__main__":
     try:
+        print("DuckDecode: Starting app...", file=sys.stderr)
         DuckDecodeApp().run()
     except Exception as e:
-        print(f"Fatal error: {e}")
-        import traceback
+        print(f"DuckDecode: Fatal error: {e}", file=sys.stderr)
         traceback.print_exc()
