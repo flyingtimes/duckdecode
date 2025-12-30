@@ -2,6 +2,7 @@
 """
 Duck Decode Android - 隐写解码移动端工具
 从图片中解码隐藏的文件内容
+Modern Material Design Style
 """
 import os
 import struct
@@ -16,14 +17,68 @@ from kivy.uix.button import Button
 from kivy.uix.textinput import TextInput
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.popup import Popup
-from kivy.uix.spinner import Spinner
 from kivy.clock import Clock
 from kivy.utils import platform
 from kivy.core.window import Window
+from kivy.graphics import Color, Rectangle, RoundedRectangle
+from kivy.properties import NumericProperty
 
 CATEGORY = "SSTool"
 WATERMARK_SKIP_W_RATIO = 0.40
 WATERMARK_SKIP_H_RATIO = 0.08
+
+
+class RoundedButton(Button):
+    """圆角按钮"""
+    radius = NumericProperty(20)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.background_color = (0, 0, 0, 0)
+        self.background_normal = ''
+        self.canvas.before.clear()
+        with self.canvas.before:
+            Color(0.3, 0.6, 1, 1)
+            self.bg_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[self.radius])
+        self.bind(pos=self.update_rect, size=self.update_rect)
+
+    def update_rect(self, *args):
+        self.bg_rect.pos = self.pos
+        self.bg_rect.size = self.size
+
+
+class CardLayout(BoxLayout):
+    """卡片式布局"""
+    radius = NumericProperty(16)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.padding = 20
+        self.spacing = 10
+        self.orientation = 'vertical'
+        self.canvas.before.clear()
+        with self.canvas.before:
+            Color(1, 1, 1, 1)
+            self.bg_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[self.radius])
+            Color(0.95, 0.95, 0.97, 1)
+            self.border_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[self.radius])
+        self.bind(pos=self.update_rect, size=self.update_rect)
+
+    def update_rect(self, *args):
+        self.bg_rect.pos = self.pos
+        self.bg_rect.size = self.size
+        self.border_rect.pos = self.pos
+        self.border_rect.size = self.size
+
+
+class MaterialLabel(Label):
+    """Material风格标签"""
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.color = (0.2, 0.2, 0.2, 1)
+        self.markup = True
+        self.halign = 'left'
+        self.valign = 'middle'
 
 
 class DecodeLogic:
@@ -180,106 +235,169 @@ class DecodeLogic:
 
 
 class DuckDecodeApp(App):
-    """主应用类"""
+    """主应用类 - Modern Material Design"""
 
     def build(self):
         self.title = "Duck Decode"
         Window.softinput_mode = "below_target"
 
-        # 主布局
-        main_layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
+        # 设置背景色
+        Window.clearcolor = (0.95, 0.95, 0.98, 1)
 
-        # 标题
-        title_label = Label(
-            text="Duck Decode",
-            font_size='30sp',
+        # 主布局 - 带滚动
+        root = BoxLayout(orientation='vertical')
+
+        # 顶部标题栏
+        header = BoxLayout(size_hint_y=None, height=80, padding=20, spacing=10)
+        with header.canvas.before:
+            Color(0.3, 0.6, 1, 1)
+            header.rect = Rectangle(pos=header.pos, size=header.size)
+        header.bind(pos=self.update_header_rect, size=self.update_header_rect)
+
+        title_layout = BoxLayout(orientation='vertical', size_hint_x=1)
+        app_title = Label(
+            text="🦆 Duck Decode",
+            font_size='28sp',
+            color=(1, 1, 1, 1),
+            bold=True,
+            size_hint_y=None,
+            height=45
+        )
+        app_subtitle = Label(
+            text="Steganography Decoder / 隐写解码工具",
+            font_size='12sp',
+            color=(0.9, 0.9, 1, 1),
+            size_hint_y=None,
+            height=20
+        )
+        title_layout.add_widget(app_title)
+        title_layout.add_widget(app_subtitle)
+        header.add_widget(title_layout)
+        root.add_widget(header)
+
+        # 内容区域 - 可滚动
+        content_scroll = ScrollView()
+        content_layout = BoxLayout(orientation='vertical', spacing=15, padding=15, size_hint_y=None)
+        content_layout.bind(minimum_height=content_layout.setter('height'))
+
+        # 选择文件卡片
+        file_card = CardLayout(size_hint_y=None, height=120)
+        file_label = MaterialLabel(
+            text="[b]Select Image / 选择图片[/b]",
+            font_size='16sp',
+            size_hint_y=None,
+            height=30
+        )
+        self.file_btn = Button(
+            text="📁 Tap to select image\n点击选择图片",
+            font_size='14sp',
             size_hint_y=None,
             height=60,
-            bold=True
+            background_color=(0.92, 0.92, 0.95, 1),
+            color=(0.3, 0.3, 0.3, 1)
         )
-        main_layout.add_widget(title_label)
+        self.file_btn.bind(on_press=self.select_file)
+        file_card.add_widget(file_label)
+        file_card.add_widget(self.file_btn)
+        content_layout.add_widget(file_card)
 
-        # 输入文件选择
-        input_layout = GridLayout(cols=1, rows=2, size_hint_y=None, height=80, spacing=5)
-        input_layout.add_widget(Label(text="Input File / 输入文件", font_size='16sp', halign='left'))
-
-        self.file_label = Label(
-            text="Tap to select image / 点击选择图片",
-            font_size='14sp',
-            color=(0, 0, 1, 1),
+        # 密码卡片
+        pwd_card = CardLayout(size_hint_y=None, height=110)
+        pwd_label = MaterialLabel(
+            text="[b]Password / 密码 (可选)[/b]",
+            font_size='16sp',
             size_hint_y=None,
-            height=40
+            height=30
         )
-        self.file_label.bind(on_touch_down=self.select_file)
-        input_layout.add_widget(self.file_label)
-        main_layout.add_widget(input_layout)
-
-        # 密码输入
-        pwd_layout = GridLayout(cols=1, rows=2, size_hint_y=None, height=80, spacing=5)
-        pwd_layout.add_widget(Label(text="Password / 密码 (可选)", font_size='16sp', halign='left'))
         self.password_input = TextInput(
-            hint_text="Enter password if needed / 如有密码请输入",
+            hint_text="Enter password if needed...",
             password=True,
+            password_mask="●",
             multiline=False,
             size_hint_y=None,
-            height=40,
-            font_size='14sp'
+            height=50,
+            font_size='16sp',
+            background_color=(0.98, 0.98, 1, 1),
+            foreground_color=(0.2, 0.2, 0.2, 1),
+            padding_x=15,
+            padding_y=15
         )
-        pwd_layout.add_widget(self.password_input)
-        main_layout.add_widget(pwd_layout)
-
-        # 输出目录
-        output_layout = GridLayout(cols=1, rows=2, size_hint_y=None, height=80, spacing=5)
-        output_layout.add_widget(Label(text="Output Dir / 输出目录", font_size='16sp', halign='left'))
-
-        self.output_label = Label(
-            text=self.get_default_output_dir(),
-            font_size='12sp',
-            color=(0, 0, 0, 1),
-            size_hint_y=None,
-            height=40,
-            text_size=(None, 40)
-        )
-        output_layout.add_widget(self.output_label)
-        main_layout.add_widget(output_layout)
+        pwd_card.add_widget(pwd_label)
+        pwd_card.add_widget(self.password_input)
+        content_layout.add_widget(pwd_card)
 
         # 解码按钮
-        self.decode_btn = Button(
-            text="DECODE / 解码",
-            font_size='20sp',
+        self.decode_btn = RoundedButton(
+            text="🔓 DECODE / 解码",
+            font_size='18sp',
+            bold=True,
             size_hint_y=None,
             height=60,
-            background_color=(0.2, 0.6, 1, 1)
+            color=(1, 1, 1, 1)
         )
         self.decode_btn.bind(on_press=self.start_decode)
-        main_layout.add_widget(self.decode_btn)
+        content_layout.add_widget(self.decode_btn)
 
-        # 日志显示
-        log_label = Label(text="Log / 日志:", font_size='14sp', halign='left', size_hint_y=None, height=30)
-        main_layout.add_widget(log_label)
-
+        # 日志区域
+        log_card = CardLayout(size_hint_y=None, height=200)
+        log_header = MaterialLabel(
+            text="[b]Log / 日志[/b]",
+            font_size='14sp',
+            size_hint_y=None,
+            height=25
+        )
         self.log_text = TextInput(
             readonly=True,
             font_size='12sp',
-            size_hint_y=1
+            size_hint_y=None,
+            height=150,
+            background_color=(0.98, 0.98, 1, 1),
+            foreground_color=(0.3, 0.3, 0.3, 1),
+            padding_x=10,
+            padding_y=8
         )
-        main_layout.add_widget(self.log_text)
+        log_card.add_widget(log_header)
+        log_card.add_widget(self.log_text)
+        content_layout.add_widget(log_card)
 
         # 打开输出目录按钮
-        self.open_btn = Button(
-            text="Open Output / 打开输出目录",
+        self.open_btn = RoundedButton(
+            text="📂 Open Output / 打开输出目录",
             font_size='16sp',
             size_hint_y=None,
-            height=50,
-            disabled=True
+            height=55,
+            disabled=True,
+            color=(1, 1, 1, 1)
         )
+        self.open_btn.canvas.before.clear()
+        with self.open_btn.canvas.before:
+            Color(0.4, 0.4, 0.4, 1)
+            self.open_btn.bg_rect = RoundedRectangle(pos=self.open_btn.pos, size=self.open_btn.size, radius=[20])
+        self.open_btn.bind(pos=self.open_btn.update_rect, size=self.open_btn.update_rect)
         self.open_btn.bind(on_press=self.open_output_dir)
-        main_layout.add_widget(self.open_btn)
+        content_layout.add_widget(self.open_btn)
+
+        # 版本信息
+        version_label = Label(
+            text="v1.0.0 | Build with Kivy",
+            font_size='11sp',
+            color=(0.6, 0.6, 0.6, 1),
+            size_hint_y=None,
+            height=30
+        )
+        content_layout.add_widget(version_label)
+
+        content_scroll.add_widget(content_layout)
+        root.add_widget(content_scroll)
 
         self.selected_file = None
         self.output_dir = self.get_default_output_dir()
 
-        return main_layout
+        return root
+
+    def update_header_rect(self, instance, value):
+        instance.rect.pos = instance.pos
+        instance.rect.size = instance.size
 
     def get_default_output_dir(self):
         """获取默认输出目录"""
@@ -288,12 +406,11 @@ class DuckDecodeApp(App):
             return primary_external_storage_path()
         return os.getcwd()
 
-    def select_file(self, instance, touch):
-        if instance.collide_point(*touch.pos):
-            if platform == 'android':
-                self.select_file_android()
-            else:
-                self.select_file_desktop()
+    def select_file(self, instance):
+        if platform == 'android':
+            self.select_file_android()
+        else:
+            self.select_file_desktop()
 
     def select_file_android(self):
         """Android文件选择"""
@@ -320,21 +437,15 @@ class DuckDecodeApp(App):
 
     def check_file_result(self, dt):
         """检查文件选择结果"""
-        from android import activity
         if hasattr(self, '_activity_result'):
             request_code, result_code, intent = self._activity_result
             if request_code == 1001:
                 if result_code == -1:  # RESULT_OK
                     uri = intent.getData()
                     from jnius import autoclass
-                    Uri = autoclass('android.net.Uri')
                     content_resolver = autoclass('org.kivy.android.PythonActivity').mActivity.getContentResolver()
 
                     # 读取文件
-                    import io
-                    from kivy.core.image import Image as CoreImage
-
-                    # 使用ContentResolver打开输入流
                     input_stream = content_resolver.openInputStream(uri)
                     data = bytearray()
                     buffer = bytearray(4096)
@@ -351,8 +462,10 @@ class DuckDecodeApp(App):
                         f.write(data)
                         self.selected_file = f.name
 
-                    self.file_label.text = f"Selected: {os.path.basename(self.selected_file)}"
-                    self.log(f"File selected: {self.selected_file}")
+                    self.file_btn.text = f"✅ {os.path.basename(self.selected_file)}"
+                    self.file_btn.background_color = (0.8, 0.95, 0.8, 1)
+                    self.file_btn.color = (0.1, 0.5, 0.1, 1)
+                    self.log(f"📎 File selected: {os.path.basename(self.selected_file)}")
 
                 delattr(self, '_activity_result')
                 return False
@@ -360,29 +473,29 @@ class DuckDecodeApp(App):
 
     def select_file_desktop(self):
         """桌面端文件选择（用于测试）"""
-        # 简单实现，仅用于测试
-        self.log("Please select file manually for now / 请手动输入文件路径测试")
+        self.log("Please select file manually for testing / 请手动输入文件路径测试")
         self.selected_file = input("Enter image path: ")
         if os.path.isfile(self.selected_file):
-            self.file_label.text = f"Selected: {os.path.basename(self.selected_file)}"
-            self.log(f"File: {self.selected_file}")
+            self.file_btn.text = f"✅ {os.path.basename(self.selected_file)}"
+            self.log(f"📎 File: {self.selected_file}")
 
     def start_decode(self, instance):
         """开始解码"""
         if not self.selected_file:
-            self.show_popup("Error / 错误", "Please select an image file first / 请先选择图片文件")
+            self.show_popup("⚠️ Error", "Please select an image file first\n请先选择图片文件")
             return
 
         if not os.path.isfile(self.selected_file):
-            self.show_popup("Error / 错误", "File not found / 文件不存在")
+            self.show_popup("⚠️ Error", "File not found\n文件不存在")
             return
 
         password = self.password_input.text
 
         # 禁用按钮
         self.decode_btn.disabled = True
+        self.decode_btn.text = "⏳ Decoding..."
         self.log_text.text = ""
-        self.log("Starting decode... 开始解码\n")
+        self.log("🚀 Starting decode... 开始解码\n")
 
         # 使用定时器执行解码（避免阻塞UI）
         Clock.schedule_once(lambda dt: self.do_decode(password), 0.1)
@@ -398,25 +511,31 @@ class DuckDecodeApp(App):
             )
 
             final_path, final_ext, size_str = result
-            self.log("-" * 50)
-            self.log("SUCCESS! / 解码成功!")
-            self.log(f"File: {final_path}")
-            self.log(f"Type: {final_ext}")
-            self.log(f"Size: {size_str}")
+            self.log("=" * 40)
+            self.log("✅ SUCCESS! 解码成功!")
+            self.log(f"📄 File: {os.path.basename(final_path)}")
+            self.log(f"📁 Type: {final_ext.upper()}")
+            self.log(f"📊 Size: {size_str}")
 
             self.decode_btn.disabled = False
+            self.decode_btn.text = "🔓 DECODE / 解码"
             self.open_btn.disabled = False
+            self.open_btn.canvas.before.clear()
+            with self.open_btn.canvas.before:
+                Color(0.3, 0.6, 1, 1)
+                self.open_btn.bg_rect = RoundedRectangle(pos=self.open_btn.pos, size=self.open_btn.size, radius=[20])
 
             self.show_popup(
-                "Success / 成功",
-                f"File decoded successfully!\n解码成功!\n\nType: {final_ext}\nSize: {size_str}"
+                "✅ Success!",
+                f"File decoded successfully!\n\n📁 Type: {final_ext.upper()}\n📊 Size: {size_str}\n\n保存位置:\n{self.output_dir}"
             )
 
         except Exception as e:
             self.decode_btn.disabled = False
-            self.log("-" * 50)
-            self.log(f"ERROR / 错误: {str(e)}")
-            self.show_popup("Error / 错误", str(e))
+            self.decode_btn.text = "🔓 DECODE / 解码"
+            self.log("=" * 40)
+            self.log(f"❌ ERROR: {str(e)}")
+            self.show_popup("❌ Error", str(e))
 
     def open_output_dir(self, instance):
         """打开输出目录"""
@@ -425,7 +544,6 @@ class DuckDecodeApp(App):
             Intent = autoclass('android.content.Intent')
             intent = Intent()
             intent.setAction(Intent.ACTION_VIEW)
-            from android.storage import primary_external_storage_path
             import urllib.parse
             uri = autoclass('android.net.Uri').parse(f"file://{self.output_dir}")
             intent.setDataAndType(uri, "resource/folder")
@@ -440,17 +558,32 @@ class DuckDecodeApp(App):
 
     def show_popup(self, title, message):
         """显示弹窗"""
-        popup_layout = BoxLayout(orientation='vertical', padding=20, spacing=10)
-        popup_label = Label(text=message, font_size='16sp', text_size=(None, None))
+        popup_layout = BoxLayout(orientation='vertical', padding=25, spacing=15)
+        popup_label = Label(
+            text=message,
+            font_size='16sp',
+            text_size=(350, None),
+            halign='center',
+            color=(0.2, 0.2, 0.2, 1)
+        )
         popup_layout.add_widget(popup_label)
 
-        close_btn = Button(text="OK / 确定", size_hint_y=None, height=50, font_size='18sp')
+        close_btn = RoundedButton(
+            text="OK / 确定",
+            size_hint_y=None,
+            height=50,
+            font_size='16sp',
+            color=(1, 1, 1, 1)
+        )
         popup_layout.add_widget(close_btn)
 
         popup = Popup(
             title=title,
+            title_font_size='20sp',
+            title_align='center',
             content=popup_layout,
-            size_hint=(0.9, 0.5),
+            size_hint=(0.85, 0.4),
+            separator_color=(0.3, 0.6, 1, 1),
             auto_dismiss=False
         )
         close_btn.bind(on_press=popup.dismiss)
