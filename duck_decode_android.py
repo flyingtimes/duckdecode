@@ -463,7 +463,7 @@ class DuckDecodeApp(App):
 
         # 打开输出目录按钮 - 更大
         self.open_btn = RoundedButton(
-            text="📁\n\n打开文件位置\n\n查看解码后的文件保存在哪里",
+            text="📁\n\n打开图库文件夹\n\n查看解码后的文件，在相册中",
             font_size='18sp',
             size_hint_y=None,
             height=100,
@@ -481,7 +481,7 @@ class DuckDecodeApp(App):
         # 底部帮助信息
         help_card = CardLayout(size_hint_y=None, height=80)
         help_text = MaterialLabel(
-            text="[size=14][b]遇到问题？[/b][/size]\n[size=13]• 确保选择的是正确的隐写图片\n• 检查密码是否正确\n• 查看上方的进度信息了解详情[/size]",
+            text="[size=14][b]文件保存位置[/b][/size]\n[size=13]• 解码后的文件保存在「图库/Pictures/DuckDecode」文件夹\n• 打开相册应用或文件管理器可以找到[/size]",
             font_size='12sp',
             size_hint_y=None,
             height=60
@@ -519,11 +519,25 @@ class DuckDecodeApp(App):
         instance.rect.size = instance.size
 
     def get_default_output_dir(self):
-        """获取默认输出目录"""
+        """获取默认输出目录 - 保存到手机图库/Pictures文件夹"""
         try:
             if platform == 'android':
                 from android.storage import primary_external_storage_path
-                return primary_external_storage_path()
+                base_path = primary_external_storage_path()
+
+                # 尝试使用Pictures文件夹（图库）
+                pictures_dir = os.path.join(base_path, "Pictures", "DuckDecode")
+                os.makedirs(pictures_dir, exist_ok=True)
+
+                # 同时尝试DCIM文件夹（相册）
+                dcim_dir = os.path.join(base_path, "DCIM", "DuckDecode")
+                try:
+                    os.makedirs(dcim_dir, exist_ok=True)
+                except:
+                    pass
+
+                # 优先返回Pictures目录
+                return pictures_dir
             return os.getcwd()
         except:
             return "."
@@ -654,9 +668,10 @@ class DuckDecodeApp(App):
             self.log(f"📄 文件名: {os.path.basename(final_path)}")
             self.log(f"📁 文件类型: {final_ext.upper()}")
             self.log(f"📊 文件大小: {size_str}")
-            self.log(f"💾 保存位置: {self.output_dir}")
+            self.log(f"💾 已保存到图库: Pictures/DuckDecode")
             self.log("=" * 50)
-            self.log("\n✅ 文件已保存！点击下方按钮可以打开文件夹查看")
+            self.log("\n✅ 文件已保存到手机图库！")
+            self.log("打开相册应用或文件管理器，在 Pictures 文件夹中可以找到")
 
             self.decode_btn.disabled = False
             self.decode_btn.text = "✅\n\n解码成功！\n\n可以继续解码其他图片"
@@ -668,7 +683,7 @@ class DuckDecodeApp(App):
 
             self.show_success_dialog(
                 "🎉 解码成功！",
-                f"文件已成功解码并保存！\n\n📁 文件类型: {final_ext.upper()}\n📊 文件大小: {size_str}\n💾 保存位置: {self.output_dir}\n\n点击「打开文件位置」按钮可以查看文件"
+                f"文件已成功解码并保存！\n\n📁 文件类型: {final_ext.upper()}\n📊 文件大小: {size_str}\n💾 已保存到图库: Pictures/DuckDecode\n\n打开相册应用或文件管理器，\n在 Pictures 文件夹中可以找到文件"
             )
 
         except Exception as e:
@@ -693,14 +708,14 @@ class DuckDecodeApp(App):
                 uri = autoclass('android.net.Uri').parse(f"file://{self.output_dir}")
                 intent.setDataAndType(uri, "resource/folder")
                 autoclass('org.kivy.android.PythonActivity').mActivity.startActivity(intent)
-                self.log(f"📁 正在打开文件夹: {self.output_dir}")
+                self.log(f"📁 正在打开图库文件夹: Pictures/DuckDecode")
             else:
                 import subprocess
                 subprocess.Popen(f'explorer "{self.output_dir}"')
                 self.log(f"📁 已打开文件夹: {self.output_dir}")
         except Exception as e:
             self.log(f"❌ 打开文件夹失败: {str(e)}")
-            self.show_error_dialog("打开文件夹失败", f"无法打开文件夹\n\n{self.output_dir}\n\n请手动使用文件管理器打开该位置")
+            self.show_error_dialog("打开文件夹失败", f"无法打开文件夹\n\n请手动打开相册应用或文件管理器\n在 Pictures/DuckDecode 文件夹中查看")
 
     def log(self, message):
         """添加日志"""
