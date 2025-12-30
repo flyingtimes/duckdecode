@@ -1,0 +1,128 @@
+name: Build Windows EXE
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Windows EXE
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build EXE with PyInstaller
+        run: |
+          pyinstaller --clean duck_decode_gui.spec
+
+      - name: Extract version info
+        id: version
+        shell: pwsh
+        run: |
+          if ("${{ github.ref }}" -match "^refs/tags/v(.*)$") {
+            $version = $matches[1]
+            echo "version=$version" >> $env:GITHUB_OUTPUT
+            echo "tag_name=true" >> $env:GITHUB_OUTPUT
+          } else {
+            $version = git describe --tags --always --dirty
+            if (-not $version) { $version = "dev" }
+            echo "version=$version" >> $env:GITHUB_OUTPUT
+            echo "tag_name=false" >> $env:GITHUB_OUTPUT
+          }
+          echo "Version: $version"
+
+      - name: Create release package
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          $distDir = "dist"
+          $releaseDir = "release"
+          New-Item -ItemType Directory -Force -Path $releaseDir
+
+          # Copy EXE to release folder with version suffix
+          $exeName = "DuckDecode-$version.exe"
+          Copy-Item "$distDir\DuckDecode.exe" -Destination "$releaseDir\$exeName"
+
+          # Create a simple README for the release
+          @"
+          Duck Decode - 隐写解码工具 v$version
+          ============================
+
+          这是一个从图片中解码隐藏文件内容的图形界面工具。
+
+          使用方法:
+          1. 双击运行 DuckDecode-$version.exe
+          2. 点击"浏览"选择包含隐藏文件的图片
+          3. 如果文件有密码保护，在密码框中输入密码
+          4. 选择输出目录
+          5. 点击"开始解码"按钮
+          6. 解码完成后，点击"打开输出目录"查看结果
+
+          支持的输入格式: PNG, JPG, JPEG, BMP
+
+          构建信息:
+          - 版本: $version
+          - 构建时间: ${{ github.event.head_commit.timestamp }}
+          - Git SHA: ${{ github.sha }}
+          "@ | Out-File -FilePath "$releaseDir\README.txt" -Encoding UTF8
+
+          # Compress the release
+          Compress-Archive -Path "$releaseDir\*" -DestinationPath "DuckDecode-$version-win64.zip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DuckDecode-Windows-EXE
+          path: DuckDecode-*-win64.zip
+          retention-days: 90
+
+      - name: Create Release (if tagged)
+        if: steps.version.outputs.tag_name == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: DuckDecode-*-win64.zip
+          generate_release_notes: true
+          body: |
+            ## Duck Decode v${{ steps.version.outputs.version }}
+
+            Windows 可执行文件下载。
+
+            ### 使用说明
+            1. 下载 `DuckDecode-${{ steps.version.outputs.version }}-win64.zip`
+            2. 解压缩
+            3. 运行 `DuckDecode-${{ steps.version.outputs.version }}.exe`
+
+            ### 系统要求
+            - Windows 10 或更高版本
+            - 无需安装 Python 或其他依赖
+
+            完整源代码和使用说明请查看项目主页。
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
